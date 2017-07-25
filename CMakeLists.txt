@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.6)
 
 project(loonmod-proj)
 
-file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/.loonlocalfiles/)
+file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/.loonmod_cache/)
 
 add_subdirectory(src)
 

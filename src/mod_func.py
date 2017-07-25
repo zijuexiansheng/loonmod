@@ -5,7 +5,7 @@ import os
 import argparse
 import sqlite3
 
-dirname = os.path.join( os.environ['LOONCONFIG'], "bash_func" )
+dirname = os.path.join( os.environ['LOONMOD_CONFIG'], "bash_func" )
 
 class Sqlite:
     def __init__(self):

@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-export LOONCONFIG=@CMAKE_INSTALL_PREFIX@/.loonlocalfiles
+export LOONMOD_CONFIG=@CMAKE_INSTALL_PREFIX@/.loonmod_cache
 MOD_SEQ=
 
 function mod_db()
