@@ -9,6 +9,7 @@ dirname = os.path.join( os.environ['LOONMOD_CONFIG'], "bash_func" )
 
 class Sqlite:
     def __init__(self):
+        os.system("mkdir -p {}".format( dirname ))
         self.open()
 
     def open(self):
