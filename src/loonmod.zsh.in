@@ -1,0 +1,104 @@
+#!/usr/bin/env zsh
+
+export LOONCONFIG=@CMAKE_INSTALL_PREFIX@/.loonlocalfiles
+MOD_SEQ=
+
+function mod_db()
+{
+    python @CMAKE_INSTALL_PREFIX@/bin/moddb.py $@
+}
+
+function listarray()
+{
+    for value in "$@"; do
+        printf "%-8s\n" "${value}"
+    done | sort | column
+}
+
+function export_all()
+{
+    export PATH=`grep -A 1 "^PATH=" <<< $1 | tail -n 1`
+    export C_INCLUDE_PATH=`grep -A 1 "^C_INCLUDE_PATH=" <<< $1 | tail -n 1`
+    export CPLUS_INCLUDE_PATH=`grep -A 1 "^CPLUS_INCLUDE_PATH=" <<< $1 | tail -n 1`
+    export LIBRARY_PATH=`grep -A 1 "^LIBRARY_PATH=" <<< $1 | tail -n 1`
+    export LD_LIBRARY_PATH=`grep -A 1 "^LD_LIBRARY_PATH=" <<< $1 | tail -n 1`
+    export DYLD_LIBRARY_PATH=`grep -A 1 "^DYLD_LIBRARY_PATH=" <<< $1 | tail -n 1`
+}
+
+function print_loonmod_usage()
+{
+    echo "Usage: loonmod <subcommand> [module name]" >&2
+    echo "    supported subcommand:" >&2
+    echo "        avail  [-n module name]   list available modules" >&2
+    echo "        clear                     clear all loaded modules" >&2
+    echo "        depend    <module name>   show dependencies of a module" >&2
+    echo "        info      <module name>   show module information" >&2
+    echo "        list   [-n module name]   list loaded modules" >&2
+    echo "        load      [module name]   load a module" >&2
+    echo "        unload    [module name]   unload a module" >&2
+}
+
+function loonmod()
+{
+    if [ "$#" -eq "0" ]; then
+        echo "[ERROR]: not a correct way to use the command"
+        print_loonmod_usage
+        return
+    fi
+
+    subcmd=$1
+    shift
+
+    mod_func_script=@CMAKE_INSTALL_PREFIX@/bin/mod_func.py
+
+    if [[ "$subcmd" == "avail" ]]; then
+        listarray `python ${mod_func_script} avail $@`
+
+    elif [[ "$subcmd" == "clear" ]]; then
+        retstr=`python ${mod_func_script} clear --seq "${MOD_SEQ}"`
+        if [[ "${retstr}" != "END" ]]; then
+            MOD_SEQ=""
+            export_all ${retstr}
+        fi
+
+    elif [[ "$subcmd" == "depend" ]]; then
+        listarray `python ${mod_func_script} depend -n $@`
+
+    elif [[ "$subcmd" == "info" ]]; then
+        python ${mod_func_script} info --seq "${MOD_SEQ} -n $@"
+
+    elif [[ "$subcmd" == "list" ]]; then
+        listarray `python ${mod_func_script} list --seq "${MOD_SEQ}" $@`
+
+    elif [[ "$subcmd" == "load" ]]; then
+        retstr=`python ${mod_func_script} load --seq "${MOD_SEQ}" -n $@`
+        if [[ "${retstr}" == "LOADED" ]]; then
+            echo "Module [$@] has already been loaded" >&2
+        elif [[ "${retstr}" == "WRONG_NAME" ]]; then
+            echo "[ERROR]: No module named [$@]" >&2
+        else
+            MOD_SEQ=`grep -A 1 "^MOD_SEQ=" <<< ${retstr} | tail -n 1`
+            export_all ${retstr}
+            dep=`echo ${retstr} | tail -n +16`
+            if [[ "$dep" != "END" ]]; then
+                echo "Unloaded dependencies:" >&2
+                listarray ${dep}
+            fi
+        fi
+
+    elif [[ "$subcmd" == "unload" ]]; then
+        retstr=`python ${mod_func_script} unload --seq "${MOD_SEQ}" -n $@`
+        if [[ "${retstr}" == "NOT_LOADED" ]]; then
+            echo "Module [$@] was not loaded" >&2
+        elif [[ "${retstr}" != "END" ]]; then
+            MOD_SEQ=`grep -A 1 "^MOD_SEQ=" <<< ${retstr} | tail -n 1`
+            export_all ${retstr}
+        fi
+
+    elif [[ "$subcmd" == "-h" || "$subcmd" == "--help" ]]; then
+        print_loonmod_usage
+        return
+    else
+        echo "[ERROR]: unknown subcommand $subcmd" >&2
+    fi
+}
