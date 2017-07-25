@@ -10,16 +10,16 @@ A bash lib for manipulating PATH dynamically
 
 ## Use brew
 
-`brew install zijuexiansheng/filbat/loonmod`
+`brew install --HEAD zijuexiansheng/filbat/loonmod`
 
 ## install command 
 
-``cmake -DCMAKE_INSTALL_PREFIX=<install root>``
+`cmake -DCMAKE_INSTALL_PREFIX=<install root> -DCMAKE_LOONLOCAL_CACHE=<cache directory>`
 
 # Usage
 
 * `source <install path>/bin/loonmod.zsh`
-* For the first time, use `mod_db db create` to create a database
+* For the first time, use `mod_db db create` to create a database (not required if installed by `brew`)
 * Type `mod_db -h` for database management
 * Type `loonmod -h` for dynamic environment managenment
 
