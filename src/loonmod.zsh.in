@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-export LOONMOD_CONFIG=@CMAKE_LOONCACHE@/loonmod
+export LOONCONFIG=@CMAKE_LOONCACHE@
 MOD_SEQ=
 
 function mod_db()
