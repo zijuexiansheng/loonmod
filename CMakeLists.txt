@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.6)
 
 project(loonmod-proj)
 
-#file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/.loonmod_cache/)
+if(NOT DEFINED CMAKE_LOONLOCAL_CACHE)
+    message(FATAL_ERROR CMAKE_LOONLOCAL_CACHE not defined)
+endif()
+
+file(MAKE_DIRECTORY ${CMAKE_LOONLOCAL_CACHE})
 
 add_subdirectory(src)
 
