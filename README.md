@@ -34,13 +34,11 @@ There are 5 subcommands for it, `insert, delete, update, list, db`. Type `mod_db
 * `insert`: add a module to the database
     * `mod_db insert <module name> /absolute/path/to/the/bin/direcotry`
     * `mod_db insert <module name> <bin path> -i <include path> -l <lib path>`
-    * `mod_db insert <module name> <bin path> -d <module 1>,<module 2>`
-        * **Notice**: After `-d` option, the list of modules should be *exactly* delimited by commas. Space is not allowed. This requirement will be improved later
+    * `mod_db insert <module name> <bin path> -d <module name>`
 * `delete`:
     * `mod_db delete <module name>`
 * `update`:
-    * `mod_db update <module name> -p <bin path> -i <include path> -l <lib path> -d <list of dependencies>`
-        * **Notice**: `<list of dependencies>` should be the same as `-d` requirement for `insert` subcommand
+    * `mod_db update <module name> -p <bin path> -i <include path> -l <lib path> -d <module name>`
     * `mod_db update <module name> -I -L -D`
 * `list`: There is a better command in `loonmod`. So it's not recommend to use this subcommand
     * `mod_db list -a`: show the names of all modules 
@@ -48,6 +46,8 @@ There are 5 subcommands for it, `insert, delete, update, list, db`. Type `mod_db
 * `db`:
     * `mod_db db create`: Create the database
     * `mod_db db cls`: clear the database **(dangerous!!! Don't use it unless you know what you are doing)**
+
+**Note**: For subcommand `insert` and `update`, the options `-p, -i, -l, -d` can be used multiple times if there are multiple directories or dependencies for them
 
 ## `loonmod`
 
@@ -73,7 +73,3 @@ This command is used to manipulate the environment variables dynamically. For ex
     * `loonmod unload <module name>`: unload module `<module name>`
 
 **Notice:** Don't try to type `loonmod <sub command> -h`, as we wrote a wrapper for those sub commands.
-
-# TODO
-
-* improve the `-d` parameter for `mod_db insert` and `mod_db update`

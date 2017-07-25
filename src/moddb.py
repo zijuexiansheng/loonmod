@@ -41,7 +41,7 @@ def error_exit(msg, exit_code = 1):
     sys.exit( exit_code )
 
 def check_dependency(sql, dependency):
-    for each in dependency.split(","):
+    for each in dependency:
         sql.execute("select name from module where name = ?", (each, ))
         if sql.fetchone():
             continue
@@ -49,23 +49,26 @@ def check_dependency(sql, dependency):
             sql.close()
             error_exit("Error: Dependency [%s] doesn't exist. Please check the format, all the dependencies should be comma delimited." % each)
 
-def insert_mod(name, path = None, inc = None, lib = None, dependency = None):
+def insert_mod(name, path = None, inc = None, lib = None, dependency = None, additional_path = None):
     print "Insert module [%s]" % name
     sql = Sqlite()
 
     stmt = "insert into module (%s) values (%s)"
     insertion_options = ['name', 'path']
-    params = [name, path]
+    if additional_path:
+        params = [name, path + ":" + ":".join( additional_path )]
+    else:
+        params = [name, path]
     if inc:
         insertion_options.append('inc')
-        params.append(inc)
+        params.append(":".join(inc))
     if lib:
         insertion_options.append('lib')
-        params.append(lib)
+        params.append(":".join(lib))
     if dependency:
         check_dependency( sql, dependency )
         insertion_options.append('dependency')
-        params.append(dependency)
+        params.append(",".join(dependency))
 
     try:
         sql.execute(stmt % (", ".join(insertion_options), ", ".join(["?" for each in insertion_options])), tuple(params))
@@ -76,13 +79,13 @@ def insert_mod(name, path = None, inc = None, lib = None, dependency = None):
     sql.close()
 
 def handle_insert(args):
-    insert_mod(args.name, args.path, args.include, args.lib, args.dependency)
+    insert_mod(args.name, args.path, args.include, args.lib, args.dependency, args.additional_path)
 
 def check_depended(name, sql):
     sql.execute("select name, dependency from module where dependency like '%%%s%%'" % name)
     names = []
     for each in sql.fetchall():
-        dep = each[1].split(',')
+        dep = filter(None, each[1].split(','))
         if name in dep:
             names.append( each[0] )
     if names:
@@ -107,6 +110,12 @@ def handle_delete(args):
     delete_mod(args.name)
 
 def update_mod(name, path = None, inc = None, lib = None, dependency = None, clear_inc = False, clear_lib = False, clear_dependency = False):
+    if clear_inc and inc:
+        error_exit("Error: -i and -I cannot be set simultaneously!")
+    if clear_lib and lib:
+        error_exit("Error: -l and -L cannot be set simultaneously!")
+    if clear_dependency and dependency:
+        error_exit("Error: -d and -D cannot be set simultaneously!")
     print "Update module [%s]" % name
     sql = Sqlite()
 
@@ -116,17 +125,17 @@ def update_mod(name, path = None, inc = None, lib = None, dependency = None, cle
 
     if path:
         insertion_options.append("path = ?")
-        params.append( path )
+        params.append( ":".join(path) )
     if inc:
         insertion_options.append("inc = ?")
-        params.append( inc )
+        params.append( ":".join(inc) )
     if lib:
         insertion_options.append("lib = ?")
-        params.append( lib )
+        params.append( ":".join(lib) )
     if dependency:
         check_dependency(sql, dependency)
         insertion_options.append("dependency = ?")
-        params.append( dependency )
+        params.append( ",".join(dependency) )
     if clear_inc:
         insertion_options.append("inc = NULL")
     if clear_lib:
@@ -232,19 +241,20 @@ def parse_argument():
     parser_insert = subparsers.add_parser('insert', help='insert a module into database')
     parser_insert.add_argument(type=str, dest='name', metavar='name', help="module name")
     parser_insert.add_argument(type=str, dest='path', metavar='path', help="bin path of the module")
-    parser_insert.add_argument('-i', type=str, dest='include', metavar='include', help="include path of the module ")
-    parser_insert.add_argument('-l', type=str, dest='lib', metavar='lib', help="library path of the module")
-    parser_insert.add_argument('-d', type=str, dest='dependency', metavar='dependency', help="dependencies delimited by commas")
+    parser_insert.add_argument('-i', type=str, dest='include', metavar='include', action="append", help="include path of the module (repeat use)")
+    parser_insert.add_argument('-l', type=str, dest='lib', metavar='lib', action="append", help="library path of the module (repeat use)")
+    parser_insert.add_argument('-d', type=str, dest='dependency', metavar='dependency', action="append", help="dependency of the module (repeat use)")
+    parser_insert.add_argument("-p", type=str, dest="additional_path", metavar="additional_path", action="append", help="additional path (repeat use)")
 
     parser_delete = subparsers.add_parser('delete', help='delete a module from the database')
     parser_delete.add_argument(type=str, dest='name', metavar='name', help="module name")
 
     parser_update = subparsers.add_parser('update', help='update a module')
     parser_update.add_argument(type=str, dest='name', metavar='name', help="module name")
-    parser_update.add_argument('-p', type=str, dest='path', metavar='path', help="bin path of the module")
-    parser_update.add_argument('-i', type=str, dest='include', metavar='include', help="include path of the module ")
-    parser_update.add_argument('-l', type=str, dest='lib', metavar='lib', help="library path of the module")
-    parser_update.add_argument('-d', type=str, dest='dependency', metavar='dependency', help="dependencies delimited by commas")
+    parser_update.add_argument('-p', type=str, dest='path', metavar='path', action="append", help="bin path of the module (repeat use)")
+    parser_update.add_argument('-i', type=str, dest='include', metavar='include', action="append", help="include path of the module (repeat use)")
+    parser_update.add_argument('-l', type=str, dest='lib', metavar='lib', action="append", help="library path of the module (repeat use)")
+    parser_update.add_argument('-d', type=str, dest='dependency', metavar='dependency', action="append", help="dependency of the module (repeat use)")
     parser_update.add_argument('-I', dest='Include', action='store_true', help="clear include path of the module")
     parser_update.add_argument('-L', dest='Lib', action='store_true', help="clear library path of the module")
     parser_update.add_argument('-D', dest='Dependency', action='store_true', help="clear dependencies of the module")
