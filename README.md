@@ -11,7 +11,7 @@ A bash/zsh lib for manipulating PATH dynamically. This lib is similar to `module
 
 ## Use brew
 
-`brew install --HEAD zijuexiansheng/filbat/loonmod`
+`brew install zijuexiansheng/filbat/loonmod`
 
 ## install command 
 
