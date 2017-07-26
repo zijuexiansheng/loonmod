@@ -65,7 +65,7 @@ function loonmod()
         listarray `python ${mod_func_script} depend -n $@`
 
     elif [[ "$subcmd" == "info" ]]; then
-        python ${mod_func_script} info --seq "${MOD_SEQ} -n $@"
+        python ${mod_func_script} info --seq "${MOD_SEQ}" -n $@
 
     elif [[ "$subcmd" == "list" ]]; then
         listarray `python ${mod_func_script} list --seq "${MOD_SEQ}" $@`
