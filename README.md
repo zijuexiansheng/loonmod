@@ -13,12 +13,6 @@ A bash/zsh lib for manipulating PATH dynamically. This lib is similar to `module
 
 `brew install zijuexiansheng/filbat/loonmod`
 
-**Potential installing error:** If install it on Mac OSX using Homebrew, there is a potential error. Please do the following to resolve the issue
-
-* `cd <Homebrew root directory>`, the `<Homebrew root directory>` is probably `/usr/local/`
-* `sudo mkdir loonlocalfiles`
-* `sudo chown -R $(whoami) loonlocalfiles`
-
 ## install command 
 
 `cmake -DCMAKE_INSTALL_PREFIX=<install root> -DCMAKE_LOONLOCAL_CACHE=<cache directory>`
