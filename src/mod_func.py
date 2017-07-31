@@ -245,6 +245,18 @@ def handle_unload(args):
         print_environs
     print "END"
 
+def handle_unloaded(args):
+    loaded_modules = filter(None, args.seq.split(","))
+    sql = Sqlite()
+    sql.execute("select name from module")
+    names = [name[0] for name in sql.fetchall()]
+    sql.close()
+    names.sort()
+    for each in names:
+        if each in loaded_modules:
+            continue
+        print each
+
 def main(args):
     subcommands = {"avail": handle_avail,
                    "clear": handle_clear,
@@ -252,7 +264,8 @@ def main(args):
                    "info": handle_info,
                    "list": handle_list,
                    "load": handle_load,
-                   "unload": handle_unload}
+                   "unload": handle_unload,
+                   "unloaded": handle_unloaded}
     try:
         subcommands[ args.subcmd ]( args )
     except KeyError:
@@ -289,6 +302,9 @@ def parse_argument():
     parser_unload = subparsers.add_parser("unload", help="Unload a module")
     parser_unload.add_argument("-n", "--name", required=True, help="Module name")
     parser_unload.add_argument("--seq", required=True, help="A sequence of loaded modules (hidden parameters)")
+
+    parser_unloaded = subparsers.add_parser("unloaded", help="List unloaded modules")
+    parser_unloaded.add_argument("--seq", required=True, help="A sequence of loaded modules (hidden parameters)")
 
     return parser.parse_args()
 

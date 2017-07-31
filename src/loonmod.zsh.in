@@ -2,10 +2,11 @@
 
 export LOONCONFIG=@CMAKE_LOONLOCAL_CACHE@
 MOD_SEQ=
+script_root=@CMAKE_INSTALL_PREFIX@/bin
 
 function mod_db()
 {
-    python @CMAKE_INSTALL_PREFIX@/bin/moddb.py $@
+    python ${script_root}/moddb.py $@
 }
 
 function listarray()
@@ -49,7 +50,7 @@ function loonmod()
     subcmd=$1
     shift
 
-    mod_func_script=@CMAKE_INSTALL_PREFIX@/bin/mod_func.py
+    mod_func_script=${script_root}/mod_func.py
 
     if [[ "$subcmd" == "avail" ]]; then
         listarray `python ${mod_func_script} avail $@`
