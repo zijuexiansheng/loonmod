@@ -5,7 +5,7 @@ MOD_SEQ=
 
 function mod_db()
 {
-    python @CMAKE_INSTALL_PREFIX@/bin/moddb.py $@
+    python2 @CMAKE_INSTALL_PREFIX@/bin/moddb.py $@
 }
 
 function listarray()
@@ -60,26 +60,26 @@ function loonmod()
     mod_func_script=@CMAKE_INSTALL_PREFIX@/bin/mod_func.py
 
     if [[ "$subcmd" == "avail" ]]; then
-        listarray `python ${mod_func_script} avail $@`
+        listarray `python2 ${mod_func_script} avail $@`
 
     elif [[ "$subcmd" == "clear" ]]; then
-        retstr=`python ${mod_func_script} clear --seq "${MOD_SEQ}"`
+        retstr=`python2 ${mod_func_script} clear --seq "${MOD_SEQ}"`
         if [[ "${retstr}" != "END" ]]; then
             MOD_SEQ=""
             export_all ${retstr}
         fi
 
     elif [[ "$subcmd" == "depend" ]]; then
-        listarray `python ${mod_func_script} depend -n $@`
+        listarray `python2 ${mod_func_script} depend -n $@`
 
     elif [[ "$subcmd" == "info" ]]; then
-        python ${mod_func_script} info --seq "${MOD_SEQ}" -n $@
+        python2 ${mod_func_script} info --seq "${MOD_SEQ}" -n $@
 
     elif [[ "$subcmd" == "list" ]]; then
-        listarray `python ${mod_func_script} list --seq "${MOD_SEQ}" $@`
+        listarray `python2 ${mod_func_script} list --seq "${MOD_SEQ}" $@`
 
     elif [[ "$subcmd" == "load" ]]; then
-        retstr=`python ${mod_func_script} load --seq "${MOD_SEQ}" -n $@`
+        retstr=`python2 ${mod_func_script} load --seq "${MOD_SEQ}" -n $@`
         if [[ "${retstr}" == "LOADED" ]]; then
             echo "Module [$@] has already been loaded" >&2
         elif [[ "${retstr}" == "WRONG_NAME" ]]; then
@@ -95,7 +95,7 @@ function loonmod()
         fi
 
     elif [[ "$subcmd" == "unload" ]]; then
-        retstr=`python ${mod_func_script} unload --seq "${MOD_SEQ}" -n $@`
+        retstr=`python2 ${mod_func_script} unload --seq "${MOD_SEQ}" -n $@`
         if [[ "${retstr}" == "NOT_LOADED" ]]; then
             echo "Module [$@] was not loaded" >&2
         elif [[ "${retstr}" != "END" ]]; then
