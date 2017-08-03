@@ -71,14 +71,14 @@ def list_safe_remove(listname, value):
         pass
 
 def remove_path(envs, path_str):
-    if isinstance(path_str, str):
+    if not isinstance(path_str, list):
         list_safe_remove(envs["PATH"], path_str)
     else:
         for each_path in path_str:
             list_safe_remove(envs["PATH"], each_path)
 
 def remove_incs(envs, incs_str):
-    if isinstance(incs_str, str):
+    if not isinstance(incs_str, list):
         list_safe_remove(envs["C_INCLUDE_PATH"], incs_str)
         list_safe_remove(envs["CPLUS_INCLUDE_PATH"], incs_str )
     else:
@@ -87,7 +87,7 @@ def remove_incs(envs, incs_str):
             list_safe_remove(envs["CPLUS_INCLUDE_PATH"], each )
 
 def remove_libs(envs, libs_str):
-    if isinstance(libs_str, str):
+    if not isinstance(libs_str, list):
         list_safe_remove( envs["LIBRARY_PATH"], libs_str )
         list_safe_remove( envs["LD_LIBRARY_PATH"], libs_str )
         list_safe_remove( envs["DYLD_LIBRARY_PATH"], libs_str )
@@ -242,7 +242,7 @@ def handle_unload(args):
             remove_incs(envs, result[3])
         if result[4]:
             remove_libs(envs, result[4])
-        print_environs
+        print_environs( envs )
     print "END"
 
 def handle_unloaded(args):
