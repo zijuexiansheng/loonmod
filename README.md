@@ -73,3 +73,7 @@ This command is used to manipulate the environment variables dynamically. For ex
     * `loonmod unload <module name>`: unload module `<module name>`
 
 **Notice:** Don't try to type `loonmod <sub command> -h`, as we wrote a wrapper for those sub commands.
+
+## TODO
+
+* fix issues for `load/unload/clear` of modules with multiple paths for `bin/include/lib`
