@@ -55,7 +55,7 @@ def get_environs():
     global env_strings
     ret = {}
     for each in env_strings:
-        ret[ each ] = filter(None, os.environ[ each ].split(":"))
+        ret[ each ] = filter(None, os.environ.get( each, "" ).split(":"))
     return ret
 
 def print_environs(envs):
