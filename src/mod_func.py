@@ -38,14 +38,14 @@ def error_exit(msg, exit_code = 1):
     sys.stderr.write("[ERROR]: {}\n".format( msg ))
     sys.exit( exit_code )
 
-def get_items(seq, attr):
+def get_items(seq, attr, delimiter=':'):
     ret = []
     sql = Sqlite()
     for name in seq:
         sql.execute("select %s from module where name = ?" % attr, (name, ))
         res = sql.fetchone()
         if res and res[0]:
-            ret.append( res[0] )
+            ret += filter(None, res[0].split(delimiter))
     sql.close()
     return ret
 
@@ -126,9 +126,8 @@ def handle_clear(args):
     print "END"
 
 def handle_depend(args):
-    dep = get_items([args.name], "dependency")
+    dep = get_items([args.name], "dependency", ',')
     if dep:
-        dep = filter(None, dep[0].split(','))
         if args.unloaded_dependencies:
             if args.seq == None:
                 error_exit("--seq is required")
@@ -237,11 +236,11 @@ def handle_unload(args):
 
         envs = get_environs()
         if result[2]:
-            remove_path(envs, result[2])
+            remove_path(envs, filter(None, result[2].split(":")))
         if result[3]:
-            remove_incs(envs, result[3])
+            remove_incs(envs, filter(None, result[3].split(":")))
         if result[4]:
-            remove_libs(envs, result[4])
+            remove_libs(envs, filter(None, result[4].split(":")))
         print_environs( envs )
     print "END"
 
