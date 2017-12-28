@@ -364,6 +364,7 @@ def handle_unloaded(args):
 
 def handle_parsereturn(args):
     retstr = json.loads(args.retstr)
+    sys.stderr.write("[DEBUG]: keyword = [{}], content = [{}]".format(args.keyword, retstr.get(args.keyword, "")))
     print retstr.get(args.keyword, "")
 
 def main(args):
