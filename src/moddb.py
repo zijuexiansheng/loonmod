@@ -248,13 +248,13 @@ def convert_table_0to1():
         params = [ json.dumps( items[2].split(':')) ]
         if item[3]:
             update_options.append('inc = ?')
-            params.append( json.dumps( item[3].split(':') )
+            params.append( json.dumps( item[3].split(':') ) )
         if item[4]:
             update_options.append('lib = ?')
-            params.append( json.dumps( item[4].split(':') )
+            params.append( json.dumps( item[4].split(':') ) )
         if item[5]:
             update_options.append('dependency = ?')
-            params.append( json.dumps( item[5].split(',') )
+            params.append( json.dumps( item[5].split(',') ) )
         params.append(item[0])
         try:
             sql.execute(stmt % ", ".join(update_options), tuple(params))
