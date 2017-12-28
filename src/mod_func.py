@@ -273,7 +273,7 @@ def build_graph(loaded_modules, root):
     unvisited_nodes.add(root)
     while len(unvisited_nodes) > 0:
         node = unvisited_nodes.pop()
-        G[ node ] = filter(lambda x: loaded_modules[x]['type'] != 'U', loaded_modules[ node ]['deps'])
+        G[ node ] = filter(lambda x: loaded_modules.has_key(x) and loaded_modules[x]['type'] != 'U', loaded_modules[ node ]['deps'])
         unvisited_nodes |= set( G[ node ] ) - set( G.keys() )
     return G
 
