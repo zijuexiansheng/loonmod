@@ -245,7 +245,7 @@ def convert_table_0to1():
         stmt = "update module set %s where id = ?"
 
         update_options = ["path = ?"]
-        params = [ json.dumps( items[2].split(':')) ]
+        params = [ json.dumps( item[2].split(':')) ]
         if item[3]:
             update_options.append('inc = ?')
             params.append( json.dumps( item[3].split(':') ) )
@@ -306,7 +306,7 @@ def parse_argument():
     parser_list.add_argument('-n', dest='name', type=str, metavar='name', help="show detailed information of the module")
 
     parser_db = subparsers.add_parser('db', help="database managements")
-    parser_db.add_argument('operation', metavar="operation",choices=["create", "cls", "0to1"], help='one of database operations')
+    parser_db.add_argument('operation', metavar="operation",choices=["create", "cls", "0to1"], help='one of database operations {create, cls, 0to1}')
 
     return parser.parse_args()
 
