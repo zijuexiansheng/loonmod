@@ -386,9 +386,10 @@ def main(args):
                    "unload": handle_unload,
                    "unloaded": handle_unloaded,
                    "parsereturn": handle_parsereturn}
-    try:
-        subcommands[ args.subcmd ]( args )
-    except KeyError:
+    cmd_func = subcommands.get( args.subcmd )
+    if cmd_func:
+        cmd_func(args)
+    else:
         error_exit("Unknown subcommand {}".format( args.subcmd ))
 
 def parse_argument():
