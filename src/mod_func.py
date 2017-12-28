@@ -180,7 +180,7 @@ def handle_info(args):
         error_exit("Module [{}] doesn't exist".format( args.name ))
 
 def handle_list(args):
-    loaded_modules = json.loads(args.seq))
+    loaded_modules = json.loads(args.seq)
     if args.name:
         for each in loaded_modules.iterkeys():
             if each.find( args.name ) != -1:
