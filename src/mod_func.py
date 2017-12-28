@@ -416,7 +416,7 @@ def parse_argument():
     parser_unloaded = subparsers.add_parser("unloaded", help="List unloaded modules")
     parser_unloaded.add_argument("--seq", required=True, help="A sequence of loaded modules (hidden parameters)")
 
-    parser_parsereturn = subparser.add_parser("parsereturn", help="Parse one field of the return string")
+    parser_parsereturn = subparsers.add_parser("parsereturn", help="Parse one field of the return string")
     parser_parsereturn.add_argument("retstr", help="The return string to be parsed")
     parser_parsereturn.add_argument("keyword", metavar="keyword", choices=["seq", "path", "c_include_path", "cplus_include_path", "library_path", "ld_library_path", "dyld_library_path", "retval"], help="The keyword to be parsed")
 
