@@ -336,8 +336,8 @@ def handle_unload(args):
         ret_str["seq"] = json.dumps( loaded_modules )
 
         show_warning = False
-        for deps in loaded_modules.itervalues():
-            if args.name in deps:
+        for mod_contents in loaded_modules.itervalues():
+            if args.name in mod_contents['deps']:
                 show_warning = True
                 break
         if show_warning:
