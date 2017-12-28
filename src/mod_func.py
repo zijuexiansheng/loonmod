@@ -204,7 +204,7 @@ def handle_load(args):
             ret_str["seq"] = json.dumps( loaded_modules )
             print json.dumps( ret_str )
 
-            sys.stderr.write("[DEBUG]: change 'D' type module [{}] to 'U' type\n".format(args.name))
+            # sys.stderr.write("[DEBUG]: change 'D' type module [{}] to 'U' type\n".format(args.name))
             return
         else:
             ret_str["retval"] = "UNKNOWN_TYPE"
@@ -218,7 +218,7 @@ def handle_load(args):
         deps = json.loads( result[5] ) if result[5] else []
         loaded_modules[ args.name ] = {"type": "U", "deps": deps}
 
-        sys.stderr.write("[DEBUG]: load 'U' type module [{}]\n".format(args.name))
+        # sys.stderr.write("[DEBUG]: load 'U' type module [{}]\n".format(args.name))
 
         unresolved_deps = set()
         for each in deps:
@@ -235,7 +235,7 @@ def handle_load(args):
             result = sql.fetchone()
             deps = json.loads( result[5] ) if result[5] else []
             loaded_modules[ cur_name ] = {"type": "D", "deps": deps}
-            sys.stderr.write("[DEBUG]: load 'D' type module [{}]\n".format( cur_name ))
+            #sys.stderr.write("[DEBUG]: load 'D' type module [{}]\n".format( cur_name ))
 
             for each in deps:
                 if loaded_modules.has_key(each) or each in unresolved_deps:
@@ -321,7 +321,7 @@ def handle_unload(args):
         sql = Sqlite()
         envs = get_environs()
         for module_name in graph.iterkeys():
-            sys.stderr.write("[DEBUG]: unload '{}' type module [{}]\n".format(loaded_modules[module_name]['type'], module_name))
+            #sys.stderr.write("[DEBUG]: unload '{}' type module [{}]\n".format(loaded_modules[module_name]['type'], module_name))
             loaded_modules.pop( module_name )
             sql.execute("select * from module where name = ?", (module_name, ))
             result = sql.fetchone()
@@ -373,7 +373,7 @@ def handle_parsereturn(args):
                 "dyld_library_path": "DYLD_LIBRARY_PATH"
                }
     retstr = json.loads(args.retstr)
-    sys.stderr.write("[DEBUG]: keyword = [{}], content = [{}]\n".format(args.keyword, retstr.get(keywords[ args.keyword ], "")))
+    #sys.stderr.write("[DEBUG]: keyword = [{}], content = [{}]\n".format(args.keyword, retstr.get(keywords[ args.keyword ], "")))
     print retstr.get(keywords[ args.keyword ], "")
 
 def main(args):
