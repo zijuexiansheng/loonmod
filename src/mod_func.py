@@ -222,12 +222,12 @@ def handle_load(args):
 
         unresolved_deps = set()
         for each in deps:
-            if not loaded_modules.has_key( each )
+            if not loaded_modules.has_key( each ):
                 unresolved_deps.add( each )
         tmp_path = json.loads( result[2] ) if result[2] else []
         tmp_inc = json.loads( result[3] )  if result[3] else []
         tmp_lib = json.loads( result[4] )  if result[4] else []
-
+
         envs = get_environs()
         while len(unresolved_deps) > 0:
             cur_name = unresolved_deps.pop()
