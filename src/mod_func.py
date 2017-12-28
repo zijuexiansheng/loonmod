@@ -134,7 +134,7 @@ def handle_depend(args):
             mod_seq = json.loads(args.seq)
             printed = False
             for each in dep:
-                if not mod_seq.has_key( each )
+                if not mod_seq.has_key( each ):
                     print each
                     printed = True
             if not printed:
