@@ -363,9 +363,18 @@ def handle_unloaded(args):
         print each
 
 def handle_parsereturn(args):
+    keywords = {"seq": "seq",
+                "retval": "retval",
+                "path": "PATH", 
+                "c_include_path": "C_INCLUDE_PATH", 
+                "cplus_include_path": "CPLUS_INCLUDE_PATH", 
+                "library_path": "LIBRARY_PATH", 
+                "ld_library_path": "LD_LIBRARY_PATH", 
+                "dyld_library_path": "DYLD_LIBRARY_PATH"
+               }
     retstr = json.loads(args.retstr)
-    sys.stderr.write("[DEBUG]: keyword = [{}], content = [{}]".format(args.keyword, retstr.get(args.keyword, "")))
-    print retstr.get(args.keyword, "")
+    sys.stderr.write("[DEBUG]: keyword = [{}], content = [{}]\n".format(args.keyword, retstr.get(keywords[ args.keyword ], "")))
+    print retstr.get(keywords[ args.keyword ], "")
 
 def main(args):
     subcommands = {"avail": handle_avail,
