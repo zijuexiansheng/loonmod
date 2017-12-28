@@ -4,6 +4,7 @@ import sys
 import os
 import argparse
 import sqlite3
+import json
 
 dirname = os.path.join( os.environ['LOONCONFIG'], "loonmod" )
 
@@ -22,6 +23,9 @@ class Sqlite:
 
     def commit(self):
         self.conn.commit()
+
+    def rollback(self):
+        self.conn.rollback()
 
     def execute(self, stmt, params = None):
         if params:
@@ -47,7 +51,7 @@ def check_dependency(sql, dependency):
             continue
         else:
             sql.close()
-            error_exit("Error: Dependency [%s] doesn't exist. Please check the format, all the dependencies should be comma delimited." % each)
+            error_exit("Error: Dependency [%s] doesn't exist." % each)
 
 def insert_mod(name, path = None, inc = None, lib = None, dependency = None, additional_path = None):
     print "Insert module [%s]" % name
@@ -56,19 +60,19 @@ def insert_mod(name, path = None, inc = None, lib = None, dependency = None, add
     stmt = "insert into module (%s) values (%s)"
     insertion_options = ['name', 'path']
     if additional_path:
-        params = [name, path + ":" + ":".join( additional_path )]
+        params = [name, json.dumps([path] + additional_path)]
     else:
-        params = [name, path]
+        params = [name, json.dumps([path])]
     if inc:
         insertion_options.append('inc')
-        params.append(":".join(inc))
+        params.append(json.dumps( inc ))
     if lib:
         insertion_options.append('lib')
-        params.append(":".join(lib))
+        params.append(json.dumps(lib))
     if dependency:
         check_dependency( sql, dependency )
         insertion_options.append('dependency')
-        params.append(",".join(dependency))
+        params.append(json.dumps( dependency ))
 
     try:
         sql.execute(stmt % (", ".join(insertion_options), ", ".join(["?" for each in insertion_options])), tuple(params))
@@ -85,13 +89,13 @@ def check_depended(name, sql):
     sql.execute("select name, dependency from module where dependency like '%%%s%%'" % name)
     names = []
     for each in sql.fetchall():
-        dep = filter(None, each[1].split(','))
+        dep = filter(None, json.loads( each[1] ))
         if name in dep:
             names.append( each[0] )
     if names:
         sql.close()
         names.sort()
-        sys.stderr.write("Error: The following modules depends on [%s]\n" % name)
+        sys.stderr.write("Error: The following modules depends on [%s]. Please update them before deleting this module\n" % name)
         os.system("echo \"%s\" | column" % "\n".join(names))
         sys.exit(1)
 
@@ -125,17 +129,17 @@ def update_mod(name, path = None, inc = None, lib = None, dependency = None, cle
 
     if path:
         insertion_options.append("path = ?")
-        params.append( ":".join(path) )
+        params.append( json.dumps(path) )
     if inc:
         insertion_options.append("inc = ?")
-        params.append( ":".join(inc) )
+        params.append( json.dumps(inc) )
     if lib:
         insertion_options.append("lib = ?")
-        params.append( ":".join(lib) )
+        params.append( json.dumps(lib) )
     if dependency:
         check_dependency(sql, dependency)
         insertion_options.append("dependency = ?")
-        params.append( ",".join(dependency) )
+        params.append( json.dumps(dependency) )
     if clear_inc:
         insertion_options.append("inc = NULL")
     if clear_lib:
@@ -153,6 +157,8 @@ def update_mod(name, path = None, inc = None, lib = None, dependency = None, cle
         sql.commit()
         print "Done!"
     except sqlite3.IntegrityError as e:
+        sql.rollback()
+        sql.close()
         raise
     sql.close()
         
@@ -169,6 +175,10 @@ def show_all_mod():
     names.sort()
     os.system("echo \"%s\" | column" % "\n".join(names))
 
+def print_json_list(json_list):
+    for each in json.loads(json_list):
+        print "\t* [%s]" % each
+
 def show_mod(name):
     print "Show info for module [%s]:" % name
     sql = Sqlite()
@@ -179,15 +189,17 @@ def show_mod(name):
     if result:
         print "module ID: [%d]" % result[0]
         print "module name: [%s]" % result[1]
-        print "module bin path: [%s]" % result[2]
+        print "module bin path:"
+        print_json_list(result[2])
         if result[3]:
-            print "module include path: [%s]" % result[3]
+            print "module include path:"
+            print_json_list(result[3])
         if result[4]:
-            print "module library path: [%s]" % result[4]
+            print "module library path:"
+            print_json_list(result[4])
         if result[5]:
             print "module dependencies:"
-            for each in result[5].split(","):
-                print "\t* [%s]" % each
+            print_json_list(result[5])
     else:
         print "Module [%s] doesn't exist" % name
 
@@ -226,11 +238,41 @@ def clear_table():
         print e
     sql.close()
 
+def convert_table_0to1():
+    sql = Sqlite()
+    sql.execute("select * from module")
+    for item in sql.fetchall():
+        stmt = "update module set %s where id = ?"
+
+        update_options = ["path = ?"]
+        params = [ json.dumps( items[2].split(':')) ]
+        if item[3]:
+            update_options.append('inc = ?')
+            params.append( json.dumps( item[3].split(':') )
+        if item[4]:
+            update_options.append('lib = ?')
+            params.append( json.dumps( item[4].split(':') )
+        if item[5]:
+            update_options.append('dependency = ?')
+            params.append( json.dumps( item[5].split(',') )
+        params.append(item[0])
+        try:
+            sql.execute(stmt % ", ".join(update_options), tuple(params))
+        except sqlite3.IntegrityError as e:
+            sql.rollback()
+            sql.close()
+            raise
+    sql.commit()
+    sql.close()
+
+
 def handle_db(args):
     if args.operation == 'create':
         create_table()
     elif args.operation == 'cls':
         clear_table()
+    elif args.operation == '0to1':
+        convert_table_0to1()
     else:
         error_exit("Error: Unknown database operation [%s]" % args.operation)
 
@@ -264,7 +306,7 @@ def parse_argument():
     parser_list.add_argument('-n', dest='name', type=str, metavar='name', help="show detailed information of the module")
 
     parser_db = subparsers.add_parser('db', help="database managements")
-    parser_db.add_argument('operation', metavar="operation",choices=["create", "cls"], help='one of database operations from [create, cls]')
+    parser_db.add_argument('operation', metavar="operation",choices=["create", "cls", "0to1"], help='one of database operations')
 
     return parser.parse_args()
 

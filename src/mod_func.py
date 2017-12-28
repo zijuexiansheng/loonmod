@@ -4,6 +4,7 @@ import sys
 import os
 import argparse
 import sqlite3
+import json
 
 dirname = os.path.join( os.environ['LOONCONFIG'], "loonmod" )
 
@@ -38,14 +39,14 @@ def error_exit(msg, exit_code = 1):
     sys.stderr.write("[ERROR]: {}\n".format( msg ))
     sys.exit( exit_code )
 
-def get_items(seq, attr, delimiter=':'):
+def get_items(seq_names, attr):
     ret = []
     sql = Sqlite()
-    for name in seq:
+    for name in seq_names:
         sql.execute("select %s from module where name = ?" % attr, (name, ))
         res = sql.fetchone()
         if res and res[0]:
-            ret += filter(None, res[0].split(delimiter))
+            ret += filter(None, json.loads(res[0]))
     sql.close()
     return ret
 
@@ -58,11 +59,11 @@ def get_environs():
         ret[ each ] = filter(None, os.environ.get( each, "" ).split(":"))
     return ret
 
-def print_environs(envs):
+def stringfy_environs(envs):
     global env_strings
     for each in env_strings:
-        print each + "="
-        print ":".join( envs[each] )
+        envs[each] = ":".join( envs[each] )
+    return envs
 
 def list_safe_remove(listname, value):
     try:
@@ -110,36 +111,43 @@ def handle_avail(args):
     print "\n".join(names)
         
 def handle_clear(args):
-    seq = args.seq.strip()
+    seq = json.loads( args.seq )
     if seq:
-        seq = filter(None, seq.split(","))
-        paths = get_items(seq, "path")
-        incs = get_items(seq, "inc")
-        libs = get_items(seq, "lib")
+        seq_names = seq.keys()
+        paths = get_items(seq_names, "path")
+        incs = get_items(seq_names, "inc")
+        libs = get_items(seq_names, "lib")
 
         envs = get_environs()
         remove_path(envs, paths)
         remove_incs(envs, incs)
         remove_libs(envs, libs)
-
-        print_environs( envs )
-    print "END"
+        print json.dumps( stringfy_environs(envs) )
+    print "{}"
 
 def handle_depend(args):
-    dep = get_items([args.name], "dependency", ',')
+    dep = get_items([args.name], "dependency")
     if dep:
         if args.unloaded_dependencies:
             if args.seq == None:
                 error_exit("--seq is required")
-            mod_seq = filter(None, args.seq.split(","))
+            mod_seq = json.loads(args.seq)
+            printed = False
             for each in dep:
-                if each in mod_seq:
-                    continue
-                print each
+                if not mod_seq.has_key( each )
+                    print each
+                    printed = True
+            if not printed:
+                print '\n'
         else:
             print "\n".join( dep )            
     else:
         print "\n"
+
+def print_json_list(msg, json_list):
+    print msg
+    for each in json.loads(json_list):
+        print "\t* [{}]".format(each)
 
 def handle_info(args):
     sql = Sqlite()
@@ -150,21 +158,21 @@ def handle_info(args):
     if result:
         print "Info for module [args]"
         print "module name: [{}]".format( result[1] )
-        print "module bin path: [{}]".format( result[2] )
+        print_json_list("module bin paths:", result[2])
         if result[3]:
-            print "module include path: [{}]".format( result[3] )
+            print_json_list("module include paths:", result[3])
         if result[4]:
-            print "module library path: [{}]".format( result[4] )
+            print_json_list("module library path:", result[4])
         if result[5]:
             if args.seq == None:
                 print "module dependencies:"
-                for each in filter(None, result[5].split(",")):
+                for each in filter(None, json.loads(result[5])):
                     print "\t* [{}]".format( each )
             else:
                 print "module dependencies (mark loaded):"
-                loaded_modules = filter(None, args.seq.split(","))
-                for each in filter(None, result[5].split(",")):
-                    if each in loaded_modules:
+                loaded_modules = json.loads(args.seq)
+                for each in filter(None, json.loads(result[5])):
+                    if loaded_modules.has_key( each ):
                         print "\t* [{}]    (loaded)".format( each )
                     else:
                         print "\t* [{}]".format( each )
@@ -172,89 +180,191 @@ def handle_info(args):
         error_exit("Module [{}] doesn't exist".format( args.name ))
 
 def handle_list(args):
-    loaded_modules = filter(None, args.seq.split(","))
+    loaded_modules = json.loads(args.seq))
     if args.name:
-        for each in loaded_modules:
+        for each in loaded_modules.iterkeys():
             if each.find( args.name ) != -1:
                 print each
     else:
-        print "\n".join( loaded_modules )
+        print "\n".join( loaded_modules.keys() )
 
 def handle_load(args):
-    loaded_modules = filter(None, args.seq.split(","))
-    if args.name in loaded_modules:
-        print "LOADED"
-        return
+    ret_str = {}
+    loaded_modules = json.loads( args.seq )
+    this_module = loaded_modules.get(args.name)
+    if this_module:
+        if this_module["type"] == 'U':
+            ret_str["retval"] = "LOADED"
+            print json.dumps( ret_str )
+            return
+        elif this_module['type'] == 'D':
+            this_module['type'] = 'U'
+
+            ret_str["retval"] = "UPGRADED"
+            ret_str["seq"] = json.dumps( loaded_modules )
+            print json.dumps( ret_str )
+
+            sys.stderr.write("[DEBUG]: change 'D' type module [{}] to 'U' type\n".format(args.name))
+            return
+        else:
+            ret_str["retval"] = "UNKNOWN_TYPE"
+            print json.dumps( ret_str )
+            return
     sql = Sqlite()
     sql.execute("select * from module where name = ?", (args.name, ))
     result = sql.fetchone()
-    sql.close()
 
     if result:
-        envs = get_environs()
-        loaded_modules.append( args.name )
-        print "MOD_SEQ="
-        print ",".join( loaded_modules )
-        if result[2]:
-            envs["PATH"].insert(0, result[2] )
-        if result[3]:
-            envs["C_INCLUDE_PATH"].insert(0, result[3])
-            envs["CPLUS_INCLUDE_PATH"].insert(0, result[3])
-        if result[4]:
-            envs["LIBRARY_PATH"].insert(0, result[4])
-            envs["LD_LIBRARY_PATH"].insert(0, result[4])
-            envs["DYLD_LIBRARY_PATH"].insert(0, result[4])
+        deps = json.loads( result[5] ) if result[5] else []
+        loaded_modules[ args.name ] = {"type": "U", "deps": deps}
 
-        print_environs(envs)
-        print "UNLOADED="
-        print_end = True
-        if result[5]:
-            for each in filter(None, result[5].split(",")):
-                if each in loaded_modules:
+        sys.stderr.write("[DEBUG]: load 'U' type module [{}]\n".format(args.name))
+
+        unresolved_deps = set()
+        for each in deps:
+            if not loaded_modules.has_key( each )
+                unresolved_deps.add( each )
+        tmp_path = json.loads( result[2] ) if result[2] else []
+        tmp_inc = json.loads( result[3] )  if result[3] else []
+        tmp_lib = json.loads( result[4] )  if result[4] else []
+
+        envs = get_environs()
+        while len(unresolved_deps) > 0:
+            cur_name = unresolved_deps.pop()
+            sql.execute("select * from module where name = ?", (cur_name, ))
+            result = sql.fetchone()
+            deps = json.loads( result[5] ) if result[5] else []
+            loaded_modules[ cur_name ] = {"type": "D", "deps": deps}
+            sys.stderr.write("[DEBUG]: load 'D' type module [{}]\n".format( cur_name ))
+
+            for each in deps:
+                if loaded_modules.has_key(each) or each in unresolved_deps:
                     continue
-                print each
-                print_end = False
-        if print_end:
-            print "END"
+                unresolved_deps.add(each)
+            if result[2]:
+                tmp_path.extend( json.loads(result[2]) )
+            if result[3]:
+                tmp_inc.extend( json.loads(result[3]) )
+            if result[4]:
+                tmp_lib.extend( json.loads(result[4]) )
+            
+        if tmp_path:
+            envs["PATH"]                = tmp_path + envs["PATH"]
+        if tmp_inc:
+            envs["C_INCLUDE_PATH"]      = tmp_inc + envs["C_INCLUDE_PATH"]
+            envs["CPLUS_INCLUDE_PATH"]  = tmp_inc + envs["CPLUS_INCLUDE_PATH"]
+        if tmp_lib:
+            envs["LIBRARY_PATH"]        = tmp_lib + envs["LIBRARY_PATH"]
+            envs["LD_LIBRARY_PATH"]     = tmp_lib + envs["LD_LIBRARY_PATH"]
+            envs["DYLD_LIBRARY_PATH"]   = tmp_lib + envs["DYLD_LIBRARY_PATH"]
+
+        ret_str = stringfy_environs(envs)
+        ret_str['seq'] = json.dumps(loaded_modules)
+        ret_str["retval"] = "GOOD"
+        print json.dumps( ret_str )
     else:
-        print "WRONG_NAME"
+        ret_str["retval"] = "WRONG_NAME"
+        print json.dumps( ret_str )
+    sql.close()
+
+def build_graph(loaded_modules, root):
+    G = {}
+    unvisited_nodes = set()
+    unvisited_nodes.add(root)
+    while len(unvisited_nodes) > 0:
+        node = unvisited_nodes.pop()
+        G[ node ] = filter(lambda x: loaded_modules[x]['type'] != 'U', loaded_modules[ node ]['deps'])
+        unvisited_nodes |= set( G[ node ] ) - set( G.keys() )
+    return G
+
+def remove_nodes(graph, loaded_module, root):
+    did_remove = False
+    if len(graph) <= 1:
+        return False
+
+    new_nodes = filter(lambda x: not graph.has_key(x), loaded_module.iterkeys())
+    while len(new_nodes) > 0 and len(graph) > 1:
+        tail_node = new_nodes.pop()
+        for each_dep in loaded_module[ tail_node ]['deps']:
+            if each_dep != root and graph.has_key(each_dep):
+                new_nodes.append( each_dep )
+                graph.pop( each_dep )
+                did_remove = True
+
+    if did_remove and len(graph) > 1:
+        reached_nodes = set()
+        node_queue = set()
+        node_queue.add( root )
+        while len(node_queue) > 0:
+            node = node_queue.pop()
+            reached_nodes.add( node )
+            for each_node in graph[ node ]:
+                if graph.has_key(each_node) and each_node not in reached_nodes:
+                    node_queue.add( each_node )
+        for node in graph.keys():
+            if node not in reached_nodes:
+                graph.pop( node )
+            else:
+                graph[node] = filter(lambda x: x in reached_nodes, graph[node])
+    return did_remove
 
 def handle_unload(args):
-    loaded_modules = filter(None, args.seq.split(","))
-    if args.name not in loaded_modules:
-        print "NOT_LOADED"
-        return
-    sql = Sqlite()
-    sql.execute("select * from module where name = ?", (args.name, ))
-    result = sql.fetchone()
-    sql.close()
+    ret_str = {}
+    loaded_modules = json.loads( args.seq )
+    this_module = loaded_modules.get( args.name )
+    if this_module:
+        graph = build_graph( loaded_modules, args.name )
+        
+        while remove_nodes(graph, loaded_modules, args.name):
+            pass
 
-    if result:
-        list_safe_remove(loaded_modules, args.name)
-        print "MOD_SEQ="
-        print ",".join( loaded_modules )
-
+        sql = Sqlite()
         envs = get_environs()
-        if result[2]:
-            remove_path(envs, filter(None, result[2].split(":")))
-        if result[3]:
-            remove_incs(envs, filter(None, result[3].split(":")))
-        if result[4]:
-            remove_libs(envs, filter(None, result[4].split(":")))
-        print_environs( envs )
-    print "END"
+        for module_name in graph.iterkeys():
+            sys.stderr.write("[DEBUG]: unload '{}' type module [{}]\n".format(loaded_modules[module_name]['type'], module_name))
+            loaded_modules.pop( module_name )
+            sql.execute("select * from module where name = ?", (module_name, ))
+            result = sql.fetchone()
+            if result[2]:
+                remove_path(envs, filter(None, json.loads(result[2])))
+            if result[3]:
+                remove_incs(envs, filter(None, json.loads(result[3])))
+            if result[4]:
+                remove_libs(envs, filter(None, json.loads(result[4])))
+        sql.close()
+        ret_str = stringfy_environs(envs)
+        ret_str["seq"] = json.dumps( loaded_modules )
+
+        show_warning = False
+        for deps in loaded_modules.itervalues():
+            if args.name in deps:
+                show_warning = True
+                break
+        if show_warning:
+            ret_str['retval'] = 'SHOW_WARNING'
+        else:
+            ret_str['retval'] = "GOOD"
+        print json.dumps( ret_str )
+
+    else:
+        ret_str["retval"] = "NOT_LOADED"
+        print json.dumps( ret_str )
 
 def handle_unloaded(args):
-    loaded_modules = filter(None, args.seq.split(","))
+    loaded_modules = json.loads( args.seq )
     sql = Sqlite()
     sql.execute("select name from module")
     names = [name[0] for name in sql.fetchall()]
     sql.close()
     names.sort()
     for each in names:
-        if each in loaded_modules:
+        if loaded_modules.has_key( each ):
             continue
         print each
+
+def handle_parsereturn(args):
+    retstr = json.loads(args.retstr)
+    print retstr.get(args.keyword, "")
 
 def main(args):
     subcommands = {"avail": handle_avail,
@@ -264,7 +374,8 @@ def main(args):
                    "list": handle_list,
                    "load": handle_load,
                    "unload": handle_unload,
-                   "unloaded": handle_unloaded}
+                   "unloaded": handle_unloaded,
+                   "parsereturn": handle_parsereturn}
     try:
         subcommands[ args.subcmd ]( args )
     except KeyError:
@@ -304,6 +415,10 @@ def parse_argument():
 
     parser_unloaded = subparsers.add_parser("unloaded", help="List unloaded modules")
     parser_unloaded.add_argument("--seq", required=True, help="A sequence of loaded modules (hidden parameters)")
+
+    parser_parsereturn = subparser.add_parser("parsereturn", help="Parse one field of the return string")
+    parser_parsereturn.add_argument("retstr", help="The return string to be parsed")
+    parser_parsereturn.add_argument("keyword", metavar="keyword", choices=["seq", "path", "c_include_path", "cplus_include_path", "library_path", "ld_library_path", "dyld_library_path", "retval"], help="The keyword to be parsed")
 
     return parser.parse_args()
 
