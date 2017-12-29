@@ -5,7 +5,7 @@ A bash/zsh lib for manipulating PATH dynamically. This lib is similar to `module
 # dependencies
 
 * python
-* cmake >= 3.6
+* cmake@3.10
 
 # Install
 
@@ -74,7 +74,3 @@ This command is used to manipulate the environment variables dynamically. For ex
 
 **Notice:** Don't try to type `loonmod <sub command> -h`, as we wrote a wrapper for those sub commands.
 
-## TODO
-
-- [ ] load dependencies automatically. And unload them correctly
-    * note: `module` can load dependencies automatically, but if the dependencies have been loaded, when unloading the module, the dependencies will also be unloaded. This behavior may not be expected.
